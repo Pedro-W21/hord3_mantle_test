@@ -1,0 +1,24 @@
+[package]
+name = "hord3_mantle_test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hord3 = {git = "https://github.com/Pedro-W21/hord3.git"}
+entity_derive = { git = "https://github.com/Pedro-W21/hord3.git"}
+engine_derive = { git = "https://github.com/Pedro-W21/hord3.git" }
+task_derive = { git = "https://github.com/Pedro-W21/hord3.git" }
+to_from_bytes = { git = "https://github.com/Pedro-W21/hord3.git" }
+to_from_bytes_derive = { git = "https://github.com/Pedro-W21/hord3.git" }
+fastrand = "2.1.1"
+winit = "0.30"
+
+cosmic-text = "0.12.1"
+noise = "0.9.0"
+
+
+[profile.release]
+codegen-units = 1
+opt-level = 3
+debug = true
+lto = "thin"
