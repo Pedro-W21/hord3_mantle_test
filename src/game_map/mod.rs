@@ -93,6 +93,9 @@ pub trait Voxel:Clone + Send + Sync + FromBytes + ToBytes + Debug + PartialEq {
             0
         }
     }
+    fn same_outside_as(&self, rhs:&Self) -> bool {
+        self.voxel_id() == rhs.voxel_id() && self.orientation() == rhs.orientation() && self.thickness() == rhs.thickness()
+    }
     /*fn orientation_converted(&self) -> Orientation {
         // first 3 bits = which side of the voxel is the underside against
         // 000 => base
@@ -135,12 +138,12 @@ pub trait VoxelType:Clone + Send + Sync + FromBytes + ToBytes {
     fn kind_of_model(&self) -> VoxelModel;
     fn light_passthrough(&self) -> VoxelLight;
     fn empty_in_direction<V:Voxel>(&self, voxel:&V, neighbor:&V, from:u8, neighbor_type:&Self) -> bool {
-        if voxel.orientation() & 0b111 == neighbor.orientation() & 0b111 && voxel.thickness() <= neighbor.thickness() && self.sides_empty() == neighbor_type.sides_empty() && voxel.thickness() > 0 {
+        if voxel.orientation() & 0b111 == neighbor.orientation() & 0b111 && (voxel.thickness() <= neighbor.thickness() || neighbor.thickness() == 0) && self.sides_empty() == neighbor_type.sides_empty() && voxel.thickness() > 0 {
             //dbg!(voxel.clone(), neighbor.clone());
-            self.empties_with_orientation(0b100, voxel.orientation()) >> (OPPOSITE_DIR[from as usize]) & 1 == 1
+            self.empties_with_orientation(DIR_MASK[OPPOSITE_DIR[(voxel.orientation() & 0b111) as usize] as usize], voxel.orientation()) >> (OPPOSITE_DIR[from as usize]) & 1 == 1
         }
         else {
-            self.empties_with_orientation(0b111110, voxel.orientation()) >> (OPPOSITE_DIR[from as usize]) & 1 == 1 || neighbor_type.empties_with_orientation(if neighbor.thickness() > 0 {0b111110} else {0}, neighbor.orientation()) >> (from as u32) & 1 == 1
+            self.empties_with_orientation(if voxel.thickness() > 0 {0b111110} else {0}, voxel.orientation()) >> (OPPOSITE_DIR[from as usize]) & 1 == 1 || neighbor_type.empties_with_orientation(if neighbor.thickness() > 0 {0b111110} else {0}, neighbor.orientation()) >> (from as u32) & 1 == 1
         }
     }
     fn empty_coming_from<V:Voxel>(&self, voxel:&V, from:u8, orientation:u8) -> bool {
@@ -894,19 +897,14 @@ impl<V:Voxel, G:Generator<V>> GameMap<V, G> {
         value
     }
 
-    fn is_area_all_same_in_dir_step_1(&self, chunk:&MapChunk<V>, around:[Option<&MapChunk<V>> ; 6], start:(i32,i32,i32), dir:usize, mask:u8, (area, area_start):((i32, i32), (i32,i32)), taken_dirs:&mut Vec<u8>, mut same:Option<(u32, (u8,u8,u8), u8)>, effective_dirs:&mut [bool ; 6], face_data:&mut Vec<[Option<(u32, (u8,u8,u8), u8)> ; 6]>) -> Option<(u32, (u8,u8,u8), u8)> {
+    fn is_area_all_same_in_dir_step_1(&self, chunk:&MapChunk<V>, around:[Option<&MapChunk<V>> ; 6], start:(i32,i32,i32), dir:usize, mask:u8, (area, area_start):((i32, i32), (i32,i32)), taken_dirs:&mut Vec<u8>, mut same:Option<(u32, (u8,u8,u8), u8)>, vox:V, effective_dirs:&mut [bool ; 6], face_data:&mut Vec<[Option<(u32, (u8,u8,u8), u8)> ; 6]>) -> Option<(u32, (u8,u8,u8), u8)> {
         let (mut first_dir, mut second_dir) = PERPENDICULAR[dir].clone();
-        let mut vox = None;
         for first in area_start.0..area.0 {
             for second in area_start.1..area.1 {
                 let position = Vec3D::new(start.0, start.1, start.2) + first_dir * first + second_dir * second;
                 let value = self.get_face_data_for_dir_first_pass((position.x, position.y, position.z), (dir, mask), chunk, around, taken_dirs, effective_dirs);
-                let local_vox = chunk.get_at_local(position, &self.dims);
-                if same.is_none() {
-                    same = value;
-                    vox = local_vox;
-                }
-                else if same != value || vox != local_vox {
+                let local_vox = chunk.get_at_local(position, &self.dims).cloned();
+                if same != value || (local_vox.is_some() && !vox.same_outside_as(&local_vox.unwrap())) {
                     return None;
                 }
             }
@@ -1075,22 +1073,30 @@ const EXPLORATION:[Vec3D<i32> ; 6] = [
                         let mut all_points = CUBE_VERTICES.clone();
                         for (i, mask) in kept_dirs.iter() {
                             if taken_dirs[(x as usize + (y as usize * self.dims.chunk_length) + (z as usize * self.dims.chunk_slice_area))] & *mask == *mask {
+                                let vox = chunk.get_at_local(Vec3D::new(x, y, z), &self.dims).cloned().unwrap();
+                                let thickness = vox.thickness_in_direction(*i as u8);
+                                if thickness != 0 {
+                                    for index in USED_VERTICES[*i] {
+                                        all_points[index] -= THICKNESS_DIR[*i] * ((255 - thickness) as f32)/255.0;
+                                    }
+                                }
                                 continue
                             }
                             else {
                                 let mut first_dir_greed = 1;
                                 let mut second_dir_greed = 1;
                                 let face_data = self.aggregation_start_step_1(chunk, around, (x,y,z), *i, *mask, &mut taken_dirs, &mut effective_dirs, &mut face_data_vec);
+                                let vox = chunk.get_at_local(Vec3D::new(x, y, z), &self.dims).cloned().unwrap();
 
                                 while (first_dir_greed + 1) < self.dims.chunk_height_i && (second_dir_greed + 1) < self.dims.chunk_height_i && face_data.is_some() {
                                     
                                     //println!("{} {} {}", first_dir_greed, second_dir_greed, step);
-                                    let mut first_test_face = self.is_area_all_same_in_dir_step_1(chunk, around, (x,y,z), *i, *mask, ((first_dir_greed + 1, second_dir_greed), (first_dir_greed, 0)), &mut taken_dirs, face_data, &mut effective_dirs, &mut face_data_vec);
+                                    let mut first_test_face = self.is_area_all_same_in_dir_step_1(chunk, around, (x,y,z), *i, *mask, ((first_dir_greed + 1, second_dir_greed), (first_dir_greed, 0)), &mut taken_dirs, face_data, vox.clone(), &mut effective_dirs, &mut face_data_vec);
                                     if first_test_face.is_some() {
                                         first_dir_greed += 1;
                                     }
 
-                                    let mut second_test_face = self.is_area_all_same_in_dir_step_1(chunk, around, (x,y,z), *i, *mask, ((first_dir_greed, second_dir_greed + 1), (0, second_dir_greed)), &mut taken_dirs, face_data, &mut effective_dirs, &mut face_data_vec);
+                                    let mut second_test_face = self.is_area_all_same_in_dir_step_1(chunk, around, (x,y,z), *i, *mask, ((first_dir_greed, second_dir_greed + 1), (0, second_dir_greed)), &mut taken_dirs, face_data, vox.clone(), &mut effective_dirs, &mut face_data_vec);
                                     if second_test_face.is_some() {
                                         second_dir_greed += 1;
                                     }

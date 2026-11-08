@@ -37,7 +37,7 @@ pub fn turbo_run_game(mantle_handler:MantleHandler) {
                     ground_at[ground_pos] = water_level as i32;
                 }
                 if (pos.z as f64) == water_level - 1.0 && actual_height < water_level {
-                    CoolVoxel {voxel_type:7, orient:0, light:VoxelLight::random_light(), thickness:fastrand::u8(30..220)}
+                    CoolVoxel {voxel_type:fastrand::u16(7..=8), orient:0, light:VoxelLight::random_light(), thickness:fastrand::u8(30..220)}
                 }
                 else {
                     CoolVoxel {voxel_type:7, orient:0, light:VoxelLight::random_light(), thickness:0}
