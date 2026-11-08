@@ -254,7 +254,7 @@ fn compute_nudges_from(vertex:Vec3Df, spd:Vec3Df, collider:&ComplexCollider, wor
         Some(voxel) => {
             voxel.clone()
         },
-        None => {CoolVoxel::new(0, 0, VoxelLight::zero_light(),None)}
+        None => {CoolVoxel::new(0, 0, VoxelLight::zero_light(), 0,None)}
     };
     if !world.world.get_voxel_types()[voxel.voxel_type as usize].is_completely_empty() {    
         let z_nudge = get_nudge_to_nearest_next_whole(vertex.z, 0.01);
@@ -317,7 +317,7 @@ fn compute_nudges_from_simple(vertex:Vec3Df, spd:Vec3Df, world:&WorldComputeHand
         Some(voxel) => {
             voxel.clone()
         },
-        None => {CoolVoxel::new(0, 0, VoxelLight::zero_light(),None)}
+        None => {CoolVoxel::new(0, 0, VoxelLight::zero_light(), 0,None)}
     };
     if !world.world.get_voxel_types()[voxel.voxel_type as usize].is_completely_empty() {    
         let z_nudge = get_nudge_to_nearest_next_whole(vertex.z, 0.01);

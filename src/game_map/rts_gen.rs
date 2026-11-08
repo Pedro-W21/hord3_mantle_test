@@ -23,7 +23,7 @@ impl Generator<CoolVoxel> for RTSGen {
         None
     }
     fn generate(&self, pos:super::WorldVoxelPos) -> CoolVoxel {
-        CoolVoxel::new(0, 0, VoxelLight::zero_light(), None)
+        CoolVoxel::new(0, 0, VoxelLight::zero_light(), 0, None)
     }
     fn get_chunks_to_hide(&self, camera:&hord3::horde::rendering::camera::Camera) -> Vec<super::WorldChunkPos> {
         vec![]

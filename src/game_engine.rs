@@ -11,8 +11,9 @@ use crate::{game_entity::{Collider, ColliderEvent, ColliderEventVariant, GameEnt
 pub struct CoolVoxel {
     pub voxel_type:u16,
     pub orient:u8,
+    pub thickness:u8,
     pub light:VoxelLight,
-    pub extra_voxel_data:Option<Vec<ExtraVoxelData>>,
+    //pub extra_voxel_data:Option<Vec<ExtraVoxelData>>,
 }
 
 /// A passage can be
@@ -72,8 +73,8 @@ pub enum ExtraVoxelData {
 }
 
 impl CoolVoxel {
-    pub fn new(voxel_type:u16, orient:u8, light:VoxelLight, extra_voxel_data:Option<Vec<ExtraVoxelData>>) -> Self {
-        Self { voxel_type, orient, light, extra_voxel_data }
+    pub fn new(voxel_type:u16, orient:u8, light:VoxelLight, thickness:u8, extra_voxel_data:Option<Vec<ExtraVoxelData>>) -> Self {
+        Self { voxel_type, orient, light, thickness, /*extra_voxel_data*/ }
     }
 }
 
@@ -122,6 +123,9 @@ impl Voxel for CoolVoxel {
     }
     fn light_level(&self) -> crate::game_map::VoxelLight {
         self.light
+    }
+    fn thickness(&self) -> u8 {
+        self.thickness
     }
 }
 
@@ -272,7 +276,7 @@ fn compute_nudges_from(vertex:Vec3Df, spd:Vec3Df, collider:&Collider, world:&Wor
     let mut nudges = Vec3Df::all_ones();
     let voxel = match world.world.get_voxel_at(get_voxel_pos(vertex)) {
         Some(voxel) => voxel.clone(),
-        None => {CoolVoxel::new(0, 0, VoxelLight::zero_light(),None)}
+        None => {CoolVoxel::new(0, 0, VoxelLight::zero_light(),0, None)}
     };
     if !world.world.get_voxel_types()[voxel.voxel_type as usize].is_completely_empty() {    
         let z_nudge = get_nudge_to_nearest_next_whole(vertex.z, 0.01);

@@ -40,16 +40,16 @@ pub fn run_game(mantle_handler:MantleHandler) {
                 if ground_at[ground_pos] < pos.z {
                     ground_at[ground_pos] = water_level as i32;
                 }
-                CoolVoxel {voxel_type:7, orient:0, light:VoxelLight::random_light(), extra_voxel_data:None}
+                CoolVoxel {voxel_type:7, orient:0, light:VoxelLight::random_light(), thickness:0}
             }
             else {
                 if ground_at[ground_pos] < pos.z {
                     ground_at[ground_pos] = pos.z;
                 }
-                CoolVoxel {voxel_type:1 + ((actual_height - water_level)/(6.0*world_height * (1.0/6.0))).clamp(0.0, 5.99) as u16, orient:0, light:VoxelLight::random_light(), extra_voxel_data:None}
+                CoolVoxel {voxel_type:1 + ((actual_height - water_level)/(6.0*world_height * (1.0/6.0))).clamp(0.0, 5.99) as u16, orient:0, light:VoxelLight::random_light(), thickness:0}
             }
         } else {
-            CoolVoxel {voxel_type:0, orient:0, light:VoxelLight::zero_light(), extra_voxel_data:None}
+            CoolVoxel {voxel_type:0, orient:0, light:VoxelLight::zero_light(), thickness:0}
         }
     }
     );
