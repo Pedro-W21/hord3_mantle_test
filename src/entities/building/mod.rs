@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use entity_derive::Entity;
 
 use crate::{shared::{colliders::ComplexCollider, death_accounting::DependSet, health::Health, mesh_info::MeshInfo, position::Position, simple_position::SimplePos, stats::Stats, turrets::{Turrets, TurretsStore}}, turbo_game_engine::TurboGameEngineTID};
@@ -33,7 +35,7 @@ impl<ID:Identify> RenderBuilding<MantleHandler, ID> for Building {
                 rendering_data.update_instance_no_rep(static_type.mesh_info.mesh_id.clone(), id, CPUInstanceData {
                     position:pos.pos,
                     speed:Vec3Df::zero(),
-                    rotation:Rotation::from_orientation(Orientation::zero())
+                    rotation:Orientation::zero()
                 });
             },
             None => {
@@ -44,7 +46,7 @@ impl<ID:Identify> RenderBuilding<MantleHandler, ID> for Building {
                     mesh_info.main_instance_id = Some(rendering_data.add_instance_no_rep(static_type.mesh_info.mesh_id.clone(), CPUInstanceData {
                         position:pos.pos,
                         speed:Vec3Df::zero(),
-                        rotation:Rotation::from_orientation(Orientation::zero())
+                        rotation:Orientation::zero()
                     }))
                 }
             }
@@ -60,7 +62,7 @@ impl<ID:Identify> RenderBuilding<MantleHandler, ID> for Building {
                         rendering_data.update_instance_no_rep(static_type.turrets.turrets[0].mesh_info.mesh_id.clone(), id, CPUInstanceData {
                             position:self_pos,
                             speed:Vec3Df::zero(),
-                            rotation:Rotation::from_orientation(Orientation::zero())
+                            rotation: Orientation::new(turret.yaw, turret.pitch - PI/2.0, 0.0)
                         });
                     },
                     None => {
@@ -71,7 +73,7 @@ impl<ID:Identify> RenderBuilding<MantleHandler, ID> for Building {
                             mesh_info.turret_instances[0] = Some(rendering_data.add_instance_no_rep(static_type.turrets.turrets[0].mesh_info.mesh_id.clone(), CPUInstanceData {
                                 position:self_pos,
                                 speed:Vec3Df::zero(),
-                                rotation:Rotation::from_orientation(Orientation::zero())
+                                rotation: Orientation::new(turret.yaw, turret.pitch - PI/2.0, 0.0)
                             }))
                         }
                     }
@@ -82,10 +84,11 @@ impl<ID:Identify> RenderBuilding<MantleHandler, ID> for Building {
                 let self_pos = pos.pos + static_turret_type.positions[turret.static_type_pos as usize];
                 match mesh_info.turret_instances[i] {
                     Some(id) => {
+                        //dbg!(turret.pitch);
                         rendering_data.update_instance_no_rep(static_turret_type.mesh_info.mesh_id.clone(), id, CPUInstanceData {
                             position:self_pos,
                             speed:Vec3Df::zero(),
-                            rotation:Rotation::from_orientation(Orientation::zero())
+                            rotation: Orientation::new(turret.yaw, turret.pitch - PI/2.0, 0.0)
                         });
                     },
                     None => {
@@ -96,7 +99,7 @@ impl<ID:Identify> RenderBuilding<MantleHandler, ID> for Building {
                             mesh_info.turret_instances[i] = Some(rendering_data.add_instance_no_rep(static_turret_type.mesh_info.mesh_id.clone(), CPUInstanceData {
                                 position:self_pos,
                                 speed:Vec3Df::zero(),
-                                rotation:Rotation::from_orientation(Orientation::zero())
+                                rotation: Orientation::new(turret.yaw, turret.pitch - PI/2.0,0.0)
                             }))
                         }
                     }

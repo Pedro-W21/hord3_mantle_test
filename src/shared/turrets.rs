@@ -508,9 +508,8 @@ impl Turret {
         }
     }
 
-    pub fn launch_projectile<'a>(&self, projectile_static_id:usize, target:Vec3Df, target_id:Option<TurboGameEngineTID>, current_tick:usize, parent:TID, parent_pos:Vec3Df, self_pos:Vec3Df, static_type:&StaticTurret, units:&UnitVecRead<'a, TID>, buildings:&BuildingVecRead<'a, TID>, reclaim:&ReclaimVecRead<'a, TID>, projectiles:&ProjectileVecRead<'a, TID>) {
+    pub fn get_launch_params<'a>(&self, projectile_static_id:usize, target:Vec3Df, target_id:Option<TurboGameEngineTID>, current_tick:usize, parent:TID, parent_pos:Vec3Df, self_pos:Vec3Df, static_type:&StaticTurret, units:&UnitVecRead<'a, TID>, buildings:&BuildingVecRead<'a, TID>, reclaim:&ReclaimVecRead<'a, TID>, projectiles:&ProjectileVecRead<'a, TID>) -> (Vec3Df, f32) {
         let static_projectile = &projectiles.static_types[projectile_static_id];
-        let gravity = static_projectile.stats.gravity_felt;
         /// what the fuck
         /// how to compute necessary initial speed to hit the intended target
         /// What to aim for ?
@@ -528,6 +527,9 @@ impl Turret {
         let travel_time = (pos_diff.norme()/static_projectile.stats.max_speed) * TICKS_PER_SECOND_F32;
         let initial_speed = (pos_diff/travel_time - static_projectile.stats.gravity_felt * travel_time * 0.5);
         //dbg!(travel_time, initial_speed);
+        (initial_speed, travel_time)
+    }
+    pub fn launch_projectile<'a>(&self, initial_speed:Vec3Df, travel_time:f32, projectile_static_id:usize, target:Vec3Df, target_id:Option<TurboGameEngineTID>, current_tick:usize, parent:TID, parent_pos:Vec3Df, self_pos:Vec3Df, static_type:&StaticTurret, units:&UnitVecRead<'a, TID>, buildings:&BuildingVecRead<'a, TID>, reclaim:&ReclaimVecRead<'a, TID>, projectiles:&ProjectileVecRead<'a, TID>) {
         let proj_id = projectiles.get_next_ent_id();
         let new_proj = NewProjectile::new(
             Position::new().with_pos(self_pos).with_speed(initial_speed),
@@ -553,30 +555,24 @@ impl Turret {
                     _ => panic!("Other entities don't have turrets")
                 };
 
-                if static_type.must_turn {
-                    
-                    let target_pos = match turret_action.kind.clone() {
-                        TurretActionKind::Attack { cast } => match cast.target {
-                            AttackTarget::Position(pos) => pos,
-                            AttackTarget::Entity(ent) => get_position_of(ent, units, buildings, projectiles, reclaim),
-                        },
-                        TurretActionKind::Assist { target, hold } => get_position_of(target, units, buildings, projectiles, reclaim),
-                        TurretActionKind::Reclaim { target } => get_position_of(target, units, buildings, projectiles, reclaim),
-                        TurretActionKind::Repair { target, hold } => get_position_of(target, units, buildings, projectiles, reclaim),
-                        TurretActionKind::BuildUnit { unit_type, progress } => parent_pos,
-                        TurretActionKind::BuildBuilding { building_type, building, building_space } => match building {
-                            Some(building_id) => get_position_of(TID::buildings(building_id), units, buildings, projectiles, reclaim),
-                            None => building_space
+                'must_turn: {
+                    if static_type.must_turn {
+                        let target_pos = match turret_action.kind.clone() {
+                            TurretActionKind::Assist { target, .. } | TurretActionKind::Reclaim { target } | TurretActionKind::Repair { target, .. } => get_position_of(target, units, buildings, projectiles, reclaim),
+                            TurretActionKind::BuildBuilding { building_type, building, building_space } => match building {
+                                Some(building_id) => get_position_of(TID::buildings(building_id), units, buildings, projectiles, reclaim),
+                                None => building_space
+                            },
+                            _ => break 'must_turn
+                        };
+                        let direct_orient = self_pos.get_orient_vers(&target_pos);
+                        let yaw_diff = direct_orient.0 - self.yaw;
+                        let pitch_diff = direct_orient.1 - self.pitch;
+                        if yaw_diff.abs() > TURRET_ORIENT_TOLERANCE || pitch_diff.abs() > TURRET_ORIENT_TOLERANCE {
+                            //println!("UNIT {:?} TURNING {} {}", parent, yaw_diff, pitch_diff);
+                            return PerformAction::Turning { yaw_add: yaw_diff.clamp(-static_type.max_turn_rate, static_type.max_turn_rate), pitch_add: pitch_diff.clamp(-static_type.max_elevation_rate, static_type.max_elevation_rate) }
                         }
-                    };
-                    let direct_orient = self_pos.get_orient_vers(&target_pos);
-                    let yaw_diff = direct_orient.0 - self.yaw;
-                    let pitch_diff = direct_orient.1 - self.pitch;
-                    if yaw_diff.abs() > TURRET_ORIENT_TOLERANCE || pitch_diff.abs() > TURRET_ORIENT_TOLERANCE {
-                        //println!("UNIT {:?} TURNING {} {}", parent, yaw_diff, pitch_diff);
-                        return PerformAction::Turning { yaw_add: yaw_diff.clamp(-static_type.max_turn_rate, static_type.max_turn_rate), pitch_add: pitch_diff.clamp(-static_type.max_elevation_rate, static_type.max_elevation_rate) }
                     }
-
                 }
                 match turret_action.kind.clone() {
                     TurretActionKind::Attack { cast } => {
@@ -595,6 +591,14 @@ impl Turret {
                                         if distance_to_target > attack.range.0 && distance_to_target < attack.range.1 {
                                             match &attack.attack_type {
                                                 AttackType::Hitscan { damage, pierce, beam_width, end_of_beam, continuous } => {
+                                                    if static_type.must_turn {
+                                                        let direct_orient = self_pos.get_orient_vers(&target_position);
+                                                        let yaw_diff = direct_orient.0 - self.yaw;
+                                                        let pitch_diff = direct_orient.1 - self.pitch;
+                                                        if yaw_diff.abs() > TURRET_ORIENT_TOLERANCE || pitch_diff.abs() > TURRET_ORIENT_TOLERANCE {
+                                                            return PerformAction::Turning { yaw_add: yaw_diff.clamp(-static_type.max_turn_rate, static_type.max_turn_rate), pitch_add: pitch_diff.clamp(-static_type.max_elevation_rate, static_type.max_elevation_rate) }
+                                                        }
+                                                    }
                                                     match pierce {
                                                         PierceKind::AlwaysHitTarget => {
                                                             // TODO : support complex damage with effects
@@ -604,13 +608,23 @@ impl Turret {
                                                     }
                                                 },
                                                 AttackType::Projectile { id } => {
+                                                    
                                                     let target = target_position;
-                                                    self.launch_projectile(*id, target, Some(target_id), current_tick, parent, parent_pos, self_pos, static_type, units, buildings, reclaim, projectiles);
+                                                    let (init_speed, travel_time) = self.get_launch_params(*id, target, Some(target_id), current_tick, parent, parent_pos, self_pos, static_type, units, buildings, reclaim, projectiles);
+                                                    let direct_orient = Vec3Df::zero().get_orient_vers(&init_speed);
+                                                    let yaw_diff = direct_orient.0 - self.yaw;
+                                                    let pitch_diff = direct_orient.1 - self.pitch;
+                                                    if yaw_diff.abs() > TURRET_ORIENT_TOLERANCE || pitch_diff.abs() > TURRET_ORIENT_TOLERANCE {
+                                                        return PerformAction::Turning { yaw_add: yaw_diff.clamp(-static_type.max_turn_rate, static_type.max_turn_rate), pitch_add: pitch_diff.clamp(-static_type.max_elevation_rate, static_type.max_elevation_rate) }
+                                                    }
+                                                    self.launch_projectile(init_speed, travel_time, *id, target, Some(target_id), current_tick, parent, parent_pos, self_pos, static_type, units, buildings, reclaim, projectiles);
                                                 },
                                                 AttackType::ManyProjectiles { ids } => {
                                                     let target = target_position;
                                                     for id in ids {
-                                                        self.launch_projectile(*id, target, Some(target_id), current_tick, parent, parent_pos, self_pos, static_type, units, buildings, reclaim, projectiles);
+                                                        let (init_speed, travel_time) = self.get_launch_params(*id, target, Some(target_id), current_tick, parent, parent_pos, self_pos, static_type, units, buildings, reclaim, projectiles);
+                                                        self.launch_projectile(init_speed, travel_time, *id, target, Some(target_id), current_tick, parent, parent_pos, self_pos, static_type, units, buildings, reclaim, projectiles);
+                                                
                                                     }
                                                 }
                                             }

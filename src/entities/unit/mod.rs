@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use entity_derive::Entity;
 
 use crate::{shared::{actions::Actions, colliders::ComplexCollider, death_accounting::DependSet, health::Health, mesh_info::MeshInfo, planner::Planner, position::Position, stats::Stats, turrets::{Turrets, TurretsStore}}, turbo_game_engine::TurboGameEngineTID};
@@ -36,7 +38,7 @@ impl<ID:Identify> RenderUnit<MantleHandler, ID> for Unit {
                 rendering_data.update_instance_no_rep(static_type.mesh_info.mesh_id.clone(), id, CPUInstanceData {
                     position:pos.pos,
                     speed:pos.spd,
-                    rotation:Rotation::from_orientation(pos.orientation)
+                    rotation:pos.orientation
                 });
             },
             None => {
@@ -47,7 +49,7 @@ impl<ID:Identify> RenderUnit<MantleHandler, ID> for Unit {
                     mesh_info.main_instance_id = Some(rendering_data.add_instance_no_rep(static_type.mesh_info.mesh_id.clone(), CPUInstanceData {
                         position:pos.pos,
                         speed:pos.spd,
-                        rotation:Rotation::from_orientation(pos.orientation)
+                        rotation:pos.orientation
                     }))
                 }
             }
@@ -65,7 +67,7 @@ impl<ID:Identify> RenderUnit<MantleHandler, ID> for Unit {
                         rendering_data.update_instance_no_rep(static_type.turrets.turrets[0].mesh_info.mesh_id.clone(), id, CPUInstanceData {
                             position:self_pos,
                             speed:pos.spd,
-                            rotation:Rotation::from_orientation(pos.orientation + Orientation::new(turret.yaw, turret.pitch, 0.0))
+                            rotation:pos.orientation + Orientation::new(turret.yaw, turret.pitch - PI/2.0, 0.0)
                         });
                     },
                     None => {
@@ -76,7 +78,7 @@ impl<ID:Identify> RenderUnit<MantleHandler, ID> for Unit {
                             mesh_info.turret_instances[0] = Some(rendering_data.add_instance_no_rep(static_type.turrets.turrets[0].mesh_info.mesh_id.clone(), CPUInstanceData {
                                 position:self_pos,
                                 speed:pos.spd,
-                                rotation:Rotation::from_orientation(pos.orientation + Orientation::new(turret.yaw, turret.pitch, 0.0))
+                                rotation:pos.orientation + Orientation::new(turret.yaw, turret.pitch - PI/2.0, 0.0)
                             }))
                         }
                     }
@@ -90,7 +92,7 @@ impl<ID:Identify> RenderUnit<MantleHandler, ID> for Unit {
                         rendering_data.update_instance_no_rep(static_turret_type.mesh_info.mesh_id.clone(), id, CPUInstanceData {
                             position:self_pos,
                             speed:pos.spd,
-                            rotation:Rotation::from_orientation(pos.orientation + Orientation::new(turret.yaw, turret.pitch, 0.0))
+                            rotation:pos.orientation + Orientation::new(turret.yaw, turret.pitch - PI/2.0, 0.0)
                         });
                     },
                     None => {
@@ -101,7 +103,7 @@ impl<ID:Identify> RenderUnit<MantleHandler, ID> for Unit {
                             mesh_info.turret_instances[i] = Some(rendering_data.add_instance_no_rep(static_turret_type.mesh_info.mesh_id.clone(), CPUInstanceData {
                                 position:self_pos,
                                 speed:pos.spd,
-                                rotation:Rotation::from_orientation(pos.orientation + Orientation::new(turret.yaw, turret.pitch, 0.0))
+                                rotation:pos.orientation + Orientation::new(turret.yaw, turret.pitch - PI/2.0, 0.0)
                             }))
                         }
                     }

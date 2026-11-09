@@ -32,7 +32,7 @@ impl<ID:Identify> RenderProjectile<MantleHandler, ID> for Projectile {
                 rendering_data.update_instance_no_rep(static_type.mesh_info.mesh_id.clone(), id, CPUInstanceData {
                     position:pos.pos,
                     speed:pos.spd,
-                    rotation:Rotation::from_orientation(Orientation::zero())
+                    rotation:Orientation::zero()
                 });
             },
             None => {
@@ -43,7 +43,7 @@ impl<ID:Identify> RenderProjectile<MantleHandler, ID> for Projectile {
                     mesh_info.instance_id = Some(rendering_data.add_instance_no_rep(static_type.mesh_info.mesh_id.clone(), CPUInstanceData {
                         position:pos.pos,
                         speed:pos.spd,
-                        rotation:Rotation::from_orientation(Orientation::zero())
+                        rotation:Orientation::zero()
                     }))
                 }
             }

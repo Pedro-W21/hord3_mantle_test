@@ -286,7 +286,7 @@ impl<ID:Identify> RenderGameEntity<MantleHandler, ID> for GameEntity {
                 rendering_data.update_instance_no_rep(static_type.mesh_info.mesh_id.clone(), id, CPUInstanceData {
                     position:movement.pos,
                     speed:movement.speed,
-                    rotation:Rotation::from_orientation(Orientation::zero())
+                    rotation:Orientation::zero()
                 });
             },
             None => {
@@ -297,7 +297,7 @@ impl<ID:Identify> RenderGameEntity<MantleHandler, ID> for GameEntity {
                     mesh_info.instance_id = Some(rendering_data.add_instance_no_rep(static_type.mesh_info.mesh_id.clone(), CPUInstanceData {
                         position:movement.pos,
                         speed:movement.speed,
-                        rotation:Rotation::from_orientation(Orientation::zero())
+                        rotation:Orientation::zero()
                     }))
                 }
             }

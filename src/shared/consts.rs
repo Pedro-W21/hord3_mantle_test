@@ -11,7 +11,7 @@ pub const PROJECTILE_SET:usize = 4;
 pub const RECLAIM_SET:usize = 5;
 pub const TICKS_PER_SECOND:usize = 60;
 pub const TICKS_PER_SECOND_F32:f32 = TICKS_PER_SECOND as f32;
-pub const TURRET_ORIENT_TOLERANCE:f32 = 0.1 * PI;
+pub const TURRET_ORIENT_TOLERANCE:f32 = 0.02 * PI;
 pub const RESOURCE_SHARE_SCALE:i64 = 100;
 
 pub const CHUNK_SIDE:usize = 16;

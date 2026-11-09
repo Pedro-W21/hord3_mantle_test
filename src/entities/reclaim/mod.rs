@@ -31,7 +31,7 @@ impl<ID:Identify> RenderReclaim<MantleHandler, ID> for Reclaim {
                 rendering_data.update_instance_no_rep(static_type.mesh_info.mesh_id.clone(), id, CPUInstanceData {
                     position:pos.pos,
                     speed:Vec3Df::zero(),
-                    rotation:Rotation::from_orientation(Orientation::zero())
+                    rotation:Orientation::zero()
                 });
             },
             None => {
@@ -42,7 +42,7 @@ impl<ID:Identify> RenderReclaim<MantleHandler, ID> for Reclaim {
                     mesh_info.instance_id = Some(rendering_data.add_instance_no_rep(static_type.mesh_info.mesh_id.clone(), CPUInstanceData {
                         position:pos.pos,
                         speed:Vec3Df::zero(),
-                        rotation:Rotation::from_orientation(Orientation::zero())
+                        rotation:Orientation::zero()
                     }))
                 }
             }

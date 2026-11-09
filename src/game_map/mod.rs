@@ -360,7 +360,7 @@ impl<V:Voxel, G:Generator<V>> Renderable<MantleHandler> for GameMap<V, G> {
                                 local_cool = true;
                             }*/
                             let name = format!("Chunk {} {} {} {}", pos.x, pos.y, pos.z, mesh_vec);
-                            let id = render_data.set_or_add_mesh_no_rep(name.clone(), lods, vec![CPUInstanceData {position:get_float_pos(pos) * height, speed:Vec3Df::zero(), rotation:Rotation::from_orientation(Orientation::zero())}]);
+                            let id = render_data.set_or_add_mesh_no_rep(name.clone(), lods, vec![CPUInstanceData {position:get_float_pos(pos) * height, speed:Vec3Df::zero(), rotation:Orientation::zero()}]);
                             /*if local_cool {
                                 test_chunk_id = id;
                             }*/
@@ -913,6 +913,9 @@ impl<V:Voxel, G:Generator<V>> GameMap<V, G> {
             for second in area_start.1..area.1 {
                 let position = Vec3D::new(start.0, start.1, start.2) + first_dir * first + second_dir * second;
                 let index = (position.x as usize + (position.y as usize * self.dims.chunk_length) + (position.z as usize * self.dims.chunk_slice_area));
+                if taken_dirs[index] & mask == mask {
+                    return None
+                }
                 taken_dirs[index] |= mask;
                 face_data[index][dir] = same;
 
@@ -942,6 +945,9 @@ impl<V:Voxel, G:Generator<V>> GameMap<V, G> {
             for second in area_start.1..area.1 {
                 let position = Vec3D::new(start.0, start.1, start.2) + first_dir * first + second_dir * second;
                 let index = (position.x as usize + (position.y as usize * self.dims.chunk_length) + (position.z as usize * self.dims.chunk_slice_area));
+                if taken_dirs[index] & mask == mask {
+                    return None
+                }
                 taken_dirs[index] |= mask;
                 face_data[index][dir] = same;
             }
